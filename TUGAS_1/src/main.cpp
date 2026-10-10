@@ -1,10 +1,27 @@
 #include <exception>
 #include <iostream>
+#include <stdexcept>
 #include "Field.h"
 #include "Goal.h"
 #include "Ball.h"
 #include "Robot.h"
 #include "Simulator.h"
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
+static void enableAnsi() {
+#ifdef _WIN32
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode = 0;
+    if (h != INVALID_HANDLE_VALUE && GetConsoleMode(h, &mode))
+        SetConsoleMode(h, mode | 0x0004);  // ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#endif
+}
 
 // minta titik (x, y) sampai valid: angka, di dalam lapangan
 static MathUtils::Vec2 askPoint(const char* name, const Field& field) {
@@ -28,6 +45,8 @@ static MathUtils::Vec2 askPoint(const char* name, const Field& field) {
 }
 
 int main() {
+    enableAnsi();  
+
     try {
         Field field;
         Goal goal;
@@ -44,7 +63,7 @@ int main() {
         Robot robot(robotPos, 90, field, goal);
 
         Simulator sim(field, goal, ball, robot);
-        sim.run(500, 1);
+        sim.run(500, 1, 100);  
     } catch (const std::exception& e) {
         std::cout << "Error: " << e.what() << "\n";
         return 1;

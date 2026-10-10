@@ -1,5 +1,8 @@
 #include "Simulator.h"
 #include <algorithm>
+#include <algorithm>
+#include <chrono>
+#include <thread>
 
 using MathUtils::Vec2;
 
@@ -61,8 +64,33 @@ void Simulator::kickTick() {
 
 void Simulator::rollTick() {
     ball_.step(field_);
-    if (!ball_.isMoving()) state_ = State::Done;
+    if (ball_.isMoving()) return;
+
+    // menabrak batas di luar gawang = keluar lapangan -> respawn di tengah
+    if (ball_.hitWall() && !scored()) {
+        respawnBall();
+        return;
+    }
+    state_ = State::Done;
 }
+
+void Simulator::respawnBall() {
+    // (0, 0) ada di sudut empat petak, snap() memilih petak (9, 6) = (0.25, -0.25)
+    Cell cell = field_.cellOf({0.0, 0.0});
+    // kalau robot berdiri di petak itu, geser bola satu petak ke kanan
+    if (cell == field_.cellOf(robot_.getPosition()))
+        cell = field_.neighbor(cell, {1, 0});
+
+    ball_.setPosition(field_.toWorld(cell), field_);
+    ++respawns_;
+
+    // robot tidak tahu bola pindah: mulai pencarian dari awal
+    scanCount_ = 0;
+    wpIndex_ = 0;
+    state_ = robot_.canSee(ball_.getPosition()) ? State::Align : State::Search;
+}
+
+int Simulator::getRespawns() const { return respawns_; }
 
 void Simulator::tick() {
     if (finished()) return;
@@ -98,25 +126,38 @@ void Simulator::render(std::ostream& os) const {
     }
 }
 
-void Simulator::run(int maxTicks, int renderEvery, std::ostream& os) {
-    os << "== awal (t = 0 s) ==\n";
+void Simulator::drawFrame(std::ostream& os) const {
+    os << "\033[H";  // kursor ke pojok kiri atas, frame baru menimpa frame lama
+    os << "t = " << getElapsed() << " s | " << stateName(state_)
+       << " | robot (" << robot_.getPosition().x << ", " << robot_.getPosition().y
+       << ") hadap " << robot_.getHeading()
+       << " | respawn " << respawns_ << "x\033[K\n";  // \033[K: hapus sisa baris lama
     render(os);
+    os << "\033[J" << std::flush;  // hapus sisa layar di bawah frame
+}
+
+void Simulator::run(int maxTicks, int renderEvery, int delayMs, std::ostream& os) {
+    auto pause = [&] {
+        if (delayMs > 0) std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+    };
+
+    os << "\033[2J";  // bersihkan layar sekali di awal
+    drawFrame(os);
+    pause();
 
     while (!finished() && tick_ < maxTicks) {
-        State before = state_;
         tick();
-        bool changed = (state_ != before);
-        if (changed || finished() || (renderEvery > 0 && tick_ % renderEvery == 0)) {
-            os << "\n== t = " << getElapsed() << " s | " << stateName(state_)
-               << " | robot (" << robot_.getPosition().x << ", " << robot_.getPosition().y
-               << ") hadap " << robot_.getHeading() << " ==\n";
-            render(os);
+        if (renderEvery > 0 && tick_ % renderEvery == 0) {
+            drawFrame(os);
+            pause();
         }
     }
+    drawFrame(os);  // frame terakhir selalu tampil
 
-    os << "\n";
+    // pesan akhir dicetak di bawah frame, setelah loop selesai
     if (state_ == State::Done)
-        os << (scored() ? "GOL" : "tidak gol") << " setelah " << getElapsed() << " detik\n";
+        os << (scored() ? "GOL" : "tidak gol") << " setelah " << getElapsed() << " detik"
+           << " (bola direspawn " << respawns_ << "x)\n";
     else if (state_ == State::Failed)
         os << "gagal (bola tidak ketemu / tidak bisa ditendang) setelah " << getElapsed() << " detik\n";
     else

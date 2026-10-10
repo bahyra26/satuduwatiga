@@ -10,6 +10,7 @@ private:
     MathUtils::Vec2 pos_;
     MathUtils::Dir dir_;
     double speed_ = 0.0;
+    bool hitWall_ = false;
 
 public:
     Ball(const MathUtils::Vec2& pos, const Field& field);
@@ -17,6 +18,7 @@ public:
     MathUtils::Vec2 getPosition() const;
     bool isMoving() const;
     double getSpeed() const;
+    bool hitWall() const;
     void setPosition(const MathUtils::Vec2& p, const Field& field);
 
     void kick(double angleDeg);

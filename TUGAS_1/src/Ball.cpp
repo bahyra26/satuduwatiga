@@ -12,17 +12,20 @@ bool Ball::isMoving() const {
     return speed_ > MathUtils::EPS && (dir_.dx != 0 || dir_.dy != 0);
 }
 double Ball::getSpeed() const { return speed_; }
+bool Ball::hitWall() const { return hitWall_; }
 
 void Ball::setPosition(const Vec2& p, const Field& field) {
     if (!field.isInside(p))
         throw std::out_of_range("Posisi bola di luar lapangan");
     pos_ = field.snap(p);
+    hitWall_ = false;   
     stop();
 }
 
 void Ball::kick(double angleDeg) {
     dir_ = MathUtils::dirFromAngle(angleDeg);
     speed_ = INITIAL_SPEED;
+    hitWall_ = false;  
 }
 
 void Ball::stop() { dir_ = {0, 0}; speed_ = 0.0; }
@@ -46,6 +49,7 @@ bool Ball::step(const Field& field) {
     }
 
     pos_ = field.toWorld(cell);
+    if (hitWall) hitWall_ = true;
     speed_ -= DECELERATION;
     if (hitWall || speed_ <= MathUtils::EPS) stop();
 

@@ -32,6 +32,7 @@ private:
     void alignTick();
     void kickTick();
     void rollTick();
+    void drawFrame(std::ostream& os) const;
 
 public:
     Simulator(const Field& field, const Goal& goal, const Ball& ball, const Robot& robot);
@@ -39,7 +40,7 @@ public:
     void tick();
     bool finished() const;
 
-    void run(int maxTicks = 500, int renderEvery = 1, std::ostream& os = std::cout);
+    void run(int maxTicks = 500, int renderEvery = 1, int delayMs = 100, std::ostream& os = std::cout);
     void render(std::ostream& os = std::cout) const;
 
     int getTick() const;
@@ -51,4 +52,10 @@ public:
     const Robot& getRobot() const;
 
     static const char* stateName(State s);
+    
+    int respawns_ = 0;  // berapa kali bola direspawn
+    
+    void respawnBall();
+    
+    int getRespawns() const;
 };

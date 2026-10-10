@@ -154,7 +154,7 @@ Robot::ShotPlan Robot::planShot(const Ball& ball, const Field& field) const {
         if (!field.isValidCell(stand.first, stand.second)) continue;
         double walk = MathUtils::distance(pos_, field.toWorld(stand));
 
-        for (double off : {0.0, 45.0, -45.0}) {
+        for (double off : {0.0}) {
             double angle = MathUtils::normalizeAngle(heading + off);
             bool scores = kickScores(ball, field, angle);
             double diff = std::fabs(MathUtils::normalizeAngle(angle - toGoal));
@@ -207,7 +207,7 @@ bool Robot::kickBall(Ball& ball, const Field& field) {
     double bestAngle = heading_, bestDiff = 0.0, bestOff = 0.0;
     bool bestScores = false, have = false;
 
-    for (double off : {0.0, 45.0, -45.0}) {
+    for (double off : {0.0}) {
         double angle = MathUtils::normalizeAngle(heading_ + off);
         bool scores = kickScores(ball, field, angle);
         double diff = std::fabs(MathUtils::normalizeAngle(angle - toGoal));
