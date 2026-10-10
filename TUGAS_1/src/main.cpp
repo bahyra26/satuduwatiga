@@ -80,15 +80,33 @@ void testRobot(const char* name, const Vec2& pos, double heading) {
               << ", relatif ke hadapan " << r.goalRelativeAngle(g) << "\n\n";
 }
 
+// R = robot, @ = petak yang kelihatan robot, O = bola, # = gawang
+void renderVision(const Field& f, const Goal& g, const Ball& b, const Robot& robot) {
+    Cell ballCell = cellOf(f, b.getPosition());
+    Cell robotCell = cellOf(f, robot.getPosition());
+
+    for (int r = 0; r < f.getRows(); ++r) {
+        for (int c = 0; c < f.getCols(); ++c) {
+            char ch = '.';
+            if (robot.canSee(f.toWorld(c, r))) ch = '@';
+            if (g.isGoalCell(c, r, f)) ch = '#';
+            if (Cell{c, r} == ballCell) ch = 'O';
+            if (Cell{c, r} == robotCell) ch = 'R';
+            std::cout << ch;
+            if (c < f.getCols() - 1) std::cout << ' ';
+        }
+        std::cout << "\n";
+    }
+}
+
 int main() {
     try {
-        testKick("lurus ke gawang", {-0.25, 0.25}, 0);
-        testKick("diagonal ke gawang", {1.75, -1.25}, 45);
+        Field f;
+        Goal g;
+        Ball b({1.25, 0.75}, f);
+        Robot r({-2.25, 0.25}, 0, f, 90, 1.5);  // posisi, hadap, fov, jarak pandang
 
-        testRobot("robot menghadap gawang", {-2.25, 0.25}, 0);
-        testRobot("robot membelakangi gawang", {1.75, -1.25}, 180);
-        testRobot("robot di pojok kiri atas, hadap bawah", {-4.25, 2.75}, -90);
-        testRobot("hadapan 270 dinormalisasi", {3.25, 2.25}, 270);
+        renderVision(f, g, b, r);
     } catch (const std::exception& e) {
         std::cout << "Error: " << e.what() << "\n";
     }

@@ -7,9 +7,19 @@ class Robot {
 private:
     MathUtils::Vec2 pos_;
     double heading_;  // derajat
+    double fov_;      // sudut pandang total (derajat)
+    double range_;    // jarak pandang maksimum (meter)
 
 public:
-    Robot(const MathUtils::Vec2& pos, double heading, const Field& field);
+    Robot(const MathUtils::Vec2& pos, double heading, const Field& field,
+          double fov = 90.0, double range = 3.0);
+
+    double getFov() const;
+    double getRange() const;
+    void setVision(double fovDeg, double rangeM);
+    bool canSee(const MathUtils::Vec2& target) const;
+    double distanceTo(const MathUtils::Vec2& target) const;
+    double relativeAngleTo(const MathUtils::Vec2& target) const;
 
     MathUtils::Vec2 getPosition() const;
     double getHeading() const;
