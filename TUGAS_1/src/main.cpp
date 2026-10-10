@@ -104,9 +104,34 @@ int main() {
         Field f;
         Goal g;
         Ball b({1.25, 0.75}, f);
-        Robot r({-2.25, 0.25}, 0, f, 90, 1.5);  // posisi, hadap, fov, jarak pandang
+        Robot r({-3.75, -3.0}, 90, f, 90, 6.0);  // posisi, hadap, fov, jarak pandang
 
+        std::cout << "== awal ==\n";
         renderVision(f, g, b, r);
+
+        // 1. scanning: putar 15 derajat sampai bola kelihatan (maksimal satu putaran)
+        int n = 0;
+        while (!r.scanStep(b, 15) && ++n < 24) {}
+        if (!r.canSee(b.getPosition())) {
+            std::cout << "bola tidak ketemu\n";
+            return 0;
+        }
+        std::cout << "\n== bola ketemu, hadap " << r.getHeading() << " ==\n";
+        renderVision(f, g, b, r);
+
+        // 2. maju ke bola
+        int steps = 0;
+        while (r.stepToBall(b, f)) ++steps;
+        std::cout << "\n== maju " << steps << " petak ==\n";
+        renderVision(f, g, b, r);
+
+        // 3. tendang, lalu bola jalan sampai berhenti
+        r.kickBall(b, g, f);
+        while (b.step(f)) {}
+        Cell end = cellOf(f, b.getPosition());
+        std::cout << "\n== setelah tendangan ==\n";
+        renderVision(f, g, b, r);
+        std::cout << (g.isGoalCell(end.first, end.second, f) ? "GOL" : "tidak gol") << "\n";
     } catch (const std::exception& e) {
         std::cout << "Error: " << e.what() << "\n";
     }
