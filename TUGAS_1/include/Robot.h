@@ -12,11 +12,13 @@ public:
     static constexpr double DEFAULT_RANGE = 1.5;   // meter
     static constexpr double TURN_STEP     = 45.0;  // derajat per putaran
 
-    // rencana tembakan: berdiri di standCell menghadap angle, bola di depan lalu ditendang ke angle
+    // rencana tembakan: berdiri di standCell menghadap bola (heading), lalu bola ditendang ke angle
+    // (lurus / miring atas / miring bawah relatif heading, jadi angle = heading + {0, +45, -45})
     struct ShotPlan {
         Cell standCell;
-        double angle;  // sudut global tendangan (kelipatan 45)
-        bool scores;   // hasil simulasi: bola berakhir di gawang?
+        double angle;    // sudut global tendangan (kelipatan 45)
+        bool scores;     // hasil simulasi: bola berakhir di gawang?
+        double heading;  // hadapan robot di standCell (menghadap bola)
     };
 
 private:
@@ -28,6 +30,9 @@ private:
 
     // satu langkah (1 petak) ke arah angleDeg (dibulatkan ke 45), hadap ikut arah itu
     bool stepAlong(double angleDeg, const Field& field);
+
+    // simulasi tendangan ke angle pada salinan bola: berakhir di gawang?
+    bool kickScores(const Ball& ball, const Field& field, double angle) const;
 
 public:
     Robot(const MathUtils::Vec2& pos, double heading, const Field& field,
@@ -70,8 +75,9 @@ public:
     // return false kalau sudah sampai atau tidak ada jalan
     bool stepToward(const MathUtils::Vec2& target, const Field& field, const Cell* avoid = nullptr);
 
-    // ALIGN: pilih dari 8 arah tendangan, simulasikan ke mana bola berakhir, utamakan yang masuk
-    // gawang (kalau ada beberapa, yang paling searah gawang). Posisi tendang = di belakang bola
+    // ALIGN: coba 8 petak di sekitar bola x 3 arah tendangan (lurus / miring atas / miring bawah),
+    // simulasikan ke mana bola berakhir, utamakan yang masuk gawang (kalau ada beberapa, yang
+    // paling searah gawang, lalu yang paling dekat untuk dijalani)
     ShotPlan planShot(const Ball& ball, const Field& field) const;
 
     // satu aksi menuju posisi tendang: jalan (menghindari petak bola), lalu putar menghadap bola.
@@ -82,7 +88,7 @@ public:
     bool canKick(const Ball& ball, const Field& field) const;
 
     // tendang bola, hanya kalau canKick().
-    // arah tendangan: lurus / miring atas / miring bawah relatif hadapan robot (yang paling dekat
-    // ke rencana tembakan). return true kalau berhasil menendang
+    // arah tendangan: lurus / miring atas / miring bawah relatif hadapan robot (yang masuk gawang,
+    // kalau ada beberapa yang paling searah gawang). return true kalau berhasil menendang
     bool kickBall(Ball& ball, const Field& field);
 };

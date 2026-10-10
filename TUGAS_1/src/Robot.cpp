@@ -130,32 +130,49 @@ bool Robot::stepToward(const Vec2& target, const Field& field, const Cell* avoid
     return found && stepAlong(bestAngle, field);
 }
 
+bool Robot::kickScores(const Ball& ball, const Field& field, double angle) const {
+    Ball sim = ball;  // simulasi tendangan pada salinan bola
+    sim.kick(angle);
+    while (sim.step(field)) {}
+    return goal_.contains(sim.getPosition(), field);
+}
+
 Robot::ShotPlan Robot::planShot(const Ball& ball, const Field& field) const {
     Cell ballCell = field.cellOf(ball.getPosition());
     double toGoal = MathUtils::bearing(ball.getPosition(), goal_.center());
 
-    ShotPlan best{ballCell, MathUtils::snap45(toGoal), false};
-    double bestDiff = 0.0;
+    ShotPlan best{ballCell, MathUtils::snap45(toGoal), false, MathUtils::snap45(toGoal)};
+    double bestDiff = 0.0, bestWalk = 0.0, bestOff = 0.0;
     bool have = false;
 
+    // robot boleh berdiri di salah satu dari 8 petak di sekitar bola, menghadap bola,
+    // lalu menendang lurus atau miring +-45 derajat dari hadapannya
     for (int i = 0; i < 8; ++i) {
-        double angle = MathUtils::normalizeAngle(45.0 * i);
-        MathUtils::Dir d = MathUtils::dirFromAngle(angle);
-        Cell stand = field.neighbor(ballCell, {-d.dx, -d.dy});  // di belakang bola
+        double heading = MathUtils::normalizeAngle(45.0 * i);  // arah dari petak berdiri ke bola
+        MathUtils::Dir d = MathUtils::dirFromAngle(heading);
+        Cell stand = field.neighbor(ballCell, {-d.dx, -d.dy});
         if (!field.isValidCell(stand.first, stand.second)) continue;
+        double walk = MathUtils::distance(pos_, field.toWorld(stand));
 
-        Ball sim = ball;  // simulasi tendangan pada salinan bola
-        sim.kick(angle);
-        while (sim.step(field)) {}
-        bool scores = goal_.contains(sim.getPosition(), field);
-        double diff = std::fabs(MathUtils::normalizeAngle(angle - toGoal));
+        for (double off : {0.0, 45.0, -45.0}) {
+            double angle = MathUtils::normalizeAngle(heading + off);
+            bool scores = kickScores(ball, field, angle);
+            double diff = std::fabs(MathUtils::normalizeAngle(angle - toGoal));
 
-        bool better = !have || (scores && !best.scores) ||
-                      (scores == best.scores && diff < bestDiff - MathUtils::EPS);
-        if (better) {
-            best = {stand, angle, scores};
-            bestDiff = diff;
-            have = true;
+            bool better;
+            if (!have) better = true;
+            else if (scores != best.scores) better = scores;
+            else if (std::fabs(diff - bestDiff) > MathUtils::EPS) better = diff < bestDiff;
+            else if (std::fabs(walk - bestWalk) > MathUtils::EPS) better = walk < bestWalk;
+            else better = std::fabs(off) < bestOff - MathUtils::EPS;
+
+            if (better) {
+                best = {stand, angle, scores, heading};
+                bestDiff = diff;
+                bestWalk = walk;
+                bestOff = std::fabs(off);
+                have = true;
+            }
         }
     }
     return best;
@@ -170,8 +187,8 @@ bool Robot::alignToShoot(const Ball& ball, const Field& field) {
     if (me != plan.standCell)
         return stepToward(field.toWorld(plan.standCell), field, &ballCell);
 
-    // sudah di posisi tendang: hadap searah tendangan (otomatis menghadap bola)
-    double want = MathUtils::snap45(plan.angle);
+    // sudah di posisi tendang: hadap bola
+    double want = MathUtils::snap45(plan.heading);
     if (std::fabs(MathUtils::normalizeAngle(want - heading_)) < MathUtils::EPS) return false;
     setHeading(want);
     return true;
@@ -184,10 +201,32 @@ bool Robot::canKick(const Ball& ball, const Field& field) const {
 bool Robot::kickBall(Ball& ball, const Field& field) {
     if (!canKick(ball, field)) return false;
 
-    // arah rencana relatif hadapan robot, dibatasi -45 / 0 / +45
-    double rel = MathUtils::normalizeAngle(planShot(ball, field).angle - heading_);
-    double offset = std::clamp(MathUtils::snap45(rel), -45.0, 45.0);
+    // pilih lurus / miring atas / miring bawah relatif hadapan: utamakan yang masuk gawang,
+    // kalau ada beberapa yang paling searah gawang
+    double toGoal = MathUtils::bearing(ball.getPosition(), goal_.center());
+    double bestAngle = heading_, bestDiff = 0.0, bestOff = 0.0;
+    bool bestScores = false, have = false;
 
-    ball.kick(heading_ + offset);
+    for (double off : {0.0, 45.0, -45.0}) {
+        double angle = MathUtils::normalizeAngle(heading_ + off);
+        bool scores = kickScores(ball, field, angle);
+        double diff = std::fabs(MathUtils::normalizeAngle(angle - toGoal));
+
+        bool better;
+        if (!have) better = true;
+        else if (scores != bestScores) better = scores;
+        else if (std::fabs(diff - bestDiff) > MathUtils::EPS) better = diff < bestDiff;
+        else better = std::fabs(off) < bestOff - MathUtils::EPS;
+
+        if (better) {
+            bestAngle = angle;
+            bestDiff = diff;
+            bestOff = std::fabs(off);
+            bestScores = scores;
+            have = true;
+        }
+    }
+
+    ball.kick(bestAngle);
     return true;
 }
