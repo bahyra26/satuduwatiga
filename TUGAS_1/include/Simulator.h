@@ -7,6 +7,7 @@
 #include "Goal.h"
 #include "Ball.h"
 #include "Robot.h"
+#include "Striker.h"
 
 class Simulator {
 public:
@@ -18,7 +19,7 @@ private:
     Field field_;
     Goal goal_;
     Ball ball_;
-    Robot robot_;
+    Striker robot_;
 
     State state_ = State::Search;
     int tick_ = 0;
@@ -35,7 +36,7 @@ private:
     void drawFrame(std::ostream& os) const;
 
 public:
-    Simulator(const Field& field, const Goal& goal, const Ball& ball, const Robot& robot);
+    Simulator(const Field& field, const Goal& goal, const Ball& ball, const Striker& robot);
 
     void tick();
     bool finished() const;

@@ -3,6 +3,7 @@
 #include "Field.h"
 #include "Goal.h"
 #include "Ball.h"
+#include "Sensor.h"
 
 class Robot {
 public:
@@ -21,11 +22,13 @@ public:
         double heading;  // hadapan robot di standCell (menghadap bola)
     };
 
+    // keputusan hasil think(): apa yang sebaiknya dilakukan robot sekarang
+    enum class Action { Search, Align, Kick };
+
 private:
     MathUtils::Vec2 pos_;  // meter, selalu di tengah petak
     double heading_;       // derajat, selalu kelipatan 45 (8 arah grid)
-    double fov_;           // sudut pandang total (derajat)
-    double range_;         // jarak pandang maksimum lurus ke depan (meter)
+    Sensor sensor_;        // Robot HAS-A Sensor (composition)
     Goal goal_;            // robot SELALU tahu lokasi gawang lawan
 
     // satu langkah (1 petak) ke arah angleDeg (dibulatkan ke 45), hadap ikut arah itu
@@ -37,7 +40,15 @@ private:
 public:
     Robot(const MathUtils::Vec2& pos, double heading, const Field& field,
           const Goal& goal = Goal(), double fov = DEFAULT_FOV, double range = DEFAULT_RANGE);
+    virtual ~Robot() = default;
+    Robot(const Robot&) = default;
+    Robot& operator=(const Robot&) = default;
 
+    // keputusan dasar: bola di depan -> Kick, kelihatan -> Align, selain itu Search.
+    // subclass (mis. Striker) meng-override dengan strategi sendiri
+    virtual Action think(const Ball& ball, const Field& field) const;
+
+    const Sensor& getSensor() const;
     double getFov() const;
     double getRange() const;
     void setVision(double fovDeg, double rangeM);

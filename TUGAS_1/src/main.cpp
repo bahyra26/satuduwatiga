@@ -4,7 +4,7 @@
 #include "Field.h"
 #include "Goal.h"
 #include "Ball.h"
-#include "Robot.h"
+#include "Striker.h"
 #include "Simulator.h"
 
 #ifdef _WIN32
@@ -60,7 +60,7 @@ int main() {
         }
 
         Ball ball(ballPos, field);
-        Robot robot(robotPos, 90, field, goal);
+        Striker robot(robotPos, 90, field, goal);
 
         Simulator sim(field, goal, ball, robot);
         sim.run(500, 1, 100);  

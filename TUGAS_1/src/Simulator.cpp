@@ -6,7 +6,7 @@
 
 using MathUtils::Vec2;
 
-Simulator::Simulator(const Field& field, const Goal& goal, const Ball& ball, const Robot& robot)
+Simulator::Simulator(const Field& field, const Goal& goal, const Ball& ball, const Striker& robot)
     : field_(field), goal_(goal), ball_(ball), robot_(robot) {
     buildWaypoints();
 }
@@ -38,7 +38,8 @@ const char* Simulator::stateName(State s) {
 void Simulator::searchTick() {
     if (scanCount_ < 8) {
         ++scanCount_;
-        if (robot_.scanStep(ball_)) state_ = State::Align;
+        robot_.scanStep(ball_);
+        if (robot_.think(ball_, field_) != Robot::Action::Search) state_ = State::Align;
         return;
     }
     if (wpIndex_ >= waypoints_.size()) {
@@ -50,10 +51,17 @@ void Simulator::searchTick() {
         scanCount_ = 0;
         return;
     }
-    if (robot_.canSee(ball_.getPosition())) state_ = State::Align;
+    if (robot_.think(ball_, field_) != Robot::Action::Search) state_ = State::Align;
 }
 
 void Simulator::alignTick() {
+    // posisi bola sudah diketahui sejak fase Search, jadi saat Align robot tetap lanjut
+    // meski bola sempat keluar dari kamera (robot berjalan/berputar). think() hanya
+    // dipakai untuk memutuskan kapan menendang.
+    if (robot_.think(ball_, field_) == Robot::Action::Kick) {
+        state_ = State::Kick;
+        return;
+    }
     if (robot_.alignToShoot(ball_, field_)) return;
     state_ = robot_.canKick(ball_, field_) ? State::Kick : State::Failed;
 }
@@ -87,7 +95,7 @@ void Simulator::respawnBall() {
     // robot tidak tahu bola pindah: mulai pencarian dari awal
     scanCount_ = 0;
     wpIndex_ = 0;
-    state_ = robot_.canSee(ball_.getPosition()) ? State::Align : State::Search;
+    state_ = (robot_.think(ball_, field_) != Robot::Action::Search) ? State::Align : State::Search;
 }
 
 int Simulator::getRespawns() const { return respawns_; }
