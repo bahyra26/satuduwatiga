@@ -133,7 +133,7 @@ bool Robot::stepToward(const Vec2& target, const Field& field, const Cell* avoid
 bool Robot::kickScores(const Ball& ball, const Field& field, double angle) const {
     Ball sim = ball;  // simulasi tendangan pada salinan bola
     sim.kick(angle);
-    while (sim.step(field)) {}
+    while (sim.isMoving()) sim.step(field);
     return goal_.contains(sim.getPosition(), field);
 }
 

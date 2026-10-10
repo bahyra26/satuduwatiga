@@ -4,10 +4,7 @@
 
 using Cell = std::pair<int, int>;
 
-// Konvensi satuan proyek:
-//   - posisi, jarak, kecepatan SELALU dalam meter (double)
-//   - petak (Cell) hanya dipakai untuk render, gerak per langkah, dan cek "tepat di depan"
-//   - 1 petak = cellSize meter; langkah diagonal tetap dihitung 1 petak
+// Konvensi: posisi, jarak, dan kecepatan dalam satuan meter (double)
 class Field {
 private:
     double width_;
@@ -32,8 +29,9 @@ public:
     // petak tetangga ke arah d (baris bertambah ke bawah, +y ke atas, ditangani di sini saja)
     Cell neighbor(const Cell& c, MathUtils::Dir d) const;
 
-    int metersToCells(double meters) const;
-    static int cellDistance(const Cell& a, const Cell& b);  // jarak 8 arah (Chebyshev)
+    double stepLength(MathUtils::Dir d) const;
+    int stepsFor(double meters, MathUtils::Dir d) const;
+    static int cellDistance(const Cell& a, const Cell& b);
 
     bool isValidCell(int col, int row) const;
     bool isInside(const MathUtils::Vec2& p) const;

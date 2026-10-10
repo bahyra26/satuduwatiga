@@ -10,8 +10,8 @@ Field::Field(double width, double height, double cellSize)
     : width_(width), height_(height), cellSize_(cellSize) {
     if (width <= 0 || height <= 0 || cellSize <= 0)
         throw std::invalid_argument("Ukuran lapangan harus positif");
-    cols_ = static_cast<int>(std::lround(width_ / cellSize_));   // 18
-    rows_ = static_cast<int>(std::lround(height_ / cellSize_));  // 12
+    cols_ = static_cast<int>(std::lround(width_ / cellSize_));
+    rows_ = static_cast<int>(std::lround(height_ / cellSize_));
 }
 
 int Field::getCols() const { return cols_; }
@@ -42,8 +42,14 @@ Cell Field::neighbor(const Cell& c, MathUtils::Dir d) const {
     return {c.first + d.dx, c.second - d.dy};
 }
 
-int Field::metersToCells(double meters) const {
-    return static_cast<int>(std::lround(meters / cellSize_));
+double Field::stepLength(MathUtils::Dir d) const {
+    return cellSize_ * std::hypot(d.dx, d.dy);  // lurus = 0.5 m, diagonal = 0.5*√2 ≈ 0.707 m
+}
+
+int Field::stepsFor(double meters, MathUtils::Dir d) const {
+    double len = stepLength(d);
+    if (len <= MathUtils::EPS) return 0;
+    return static_cast<int>(std::floor(meters / len + MathUtils::EPS));
 }
 
 int Field::cellDistance(const Cell& a, const Cell& b) {

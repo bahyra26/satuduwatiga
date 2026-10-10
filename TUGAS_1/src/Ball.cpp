@@ -1,4 +1,3 @@
-// direvisi dengan bantuan AI (konsistensi satuan meter/petak)
 #include "Ball.h"
 #include <stdexcept>
 
@@ -32,7 +31,7 @@ bool Ball::step(const Field& field) {
     if (!isMoving()) return false;
 
     Cell cell = field.cellOf(pos_);
-    int budget = field.metersToCells(speed_);  // jatah petak tick ini
+    int budget = field.stepsFor(speed_, dir_);
     int moved = 0;
     bool hitWall = false;
 

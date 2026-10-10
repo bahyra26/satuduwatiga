@@ -1,7 +1,6 @@
 #pragma once
 #include <cmath>
 
-// direvisi dengan bantuan AI (konsistensi satuan meter/petak)
 namespace MathUtils {
 
 constexpr double PI  = 3.14159265358979323846;

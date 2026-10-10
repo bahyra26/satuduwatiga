@@ -9,12 +9,13 @@ Simulator::Simulator(const Field& field, const Goal& goal, const Ball& ball, con
 }
 
 void Simulator::buildWaypoints() {
-    const int gap = 5;  // jarak antar titik pencarian (petak)
+    const int colGap = 5;
+    const int rowGap = 4;
     int k = 0;
-    for (int row = 2; row < field_.getRows(); row += gap, ++k) {
+    for (int row = 2; row < field_.getRows(); row += rowGap, ++k) {
         std::vector<int> cols;
-        for (int c = 2; c < field_.getCols(); c += gap) cols.push_back(c);
-        if (k % 2 == 1) std::reverse(cols.begin(), cols.end());  // baris berikutnya arah balik
+        for (int c = 2; c < field_.getCols(); c += colGap) cols.push_back(c);
+        if (k % 2 == 1) std::reverse(cols.begin(), cols.end());
         for (int c : cols) waypoints_.push_back(field_.toWorld(c, row));
     }
 }
@@ -32,18 +33,15 @@ const char* Simulator::stateName(State s) {
 }
 
 void Simulator::searchTick() {
-    // 1) scan penuh di titik sekarang (8 putaran x 45 derajat, 1 putaran per tick)
     if (scanCount_ < 8) {
         ++scanCount_;
         if (robot_.scanStep(ball_)) state_ = State::Align;
         return;
     }
-    // 2) semua titik sudah dikunjungi, bola tidak ketemu
     if (wpIndex_ >= waypoints_.size()) {
         state_ = State::Failed;
         return;
     }
-    // 3) jalan satu petak ke waypoint; kalau sudah sampai, mulai scan di titik itu
     if (!robot_.stepToward(waypoints_[wpIndex_], field_)) {
         ++wpIndex_;
         scanCount_ = 0;
@@ -53,7 +51,7 @@ void Simulator::searchTick() {
 }
 
 void Simulator::alignTick() {
-    if (robot_.alignToShoot(ball_, field_)) return;  // masih bergerak / memutar
+    if (robot_.alignToShoot(ball_, field_)) return;
     state_ = robot_.canKick(ball_, field_) ? State::Kick : State::Failed;
 }
 
@@ -62,26 +60,26 @@ void Simulator::kickTick() {
 }
 
 void Simulator::rollTick() {
-    if (!ball_.step(field_)) state_ = State::Done;  // bola berhenti
+    ball_.step(field_);
+    if (!ball_.isMoving()) state_ = State::Done;
 }
 
 void Simulator::tick() {
     if (finished()) return;
     ++tick_;
     switch (state_) {
-        case State::Search:  searchTick(); break;
-        case State::Align:   alignTick();  break;
-        case State::Kick:    kickTick();   break;
-        case State::Rolling: rollTick();   break;
+        case State::Search: searchTick(); break;
+        case State::Align:  alignTick();  break;
+        case State::Kick:   kickTick();   break;
         default: break;
     }
+    if (state_ == State::Rolling) rollTick();
 }
 
 bool Simulator::finished() const {
     return state_ == State::Done || state_ == State::Failed;
 }
 
-// R = robot, @ = petak yang kelihatan robot, O = bola, # = gawang, . = kosong
 void Simulator::render(std::ostream& os) const {
     Cell ballCell = field_.cellOf(ball_.getPosition());
     Cell robotCell = field_.cellOf(robot_.getPosition());
