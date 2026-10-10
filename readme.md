@@ -120,3 +120,16 @@ stateDiagram-v2
 ```
 
 Berbeda dengan `Robot::think()` dasar (yang menendang begitu bola kebetulan di depan), `Striker` hanya menendang dari petak yang sudah direncanakan `planShot()`, sehingga arah tendangannya selalu dipilih secara sengaja.
+
+## Penggunaan AI
+
+Proyek ini dikerjakan dengan bantuan asisten AI (model bahasa besar). Semua kode sudah dibaca, dijalankan, dan diuji sendiri, dan hasil di bagian Skenario Uji berasal dari program sungguhan.
+
+### Bagian yang dibantu AI
+
+| Bagian | Bentuk bantuan |
+| --- | --- |
+| Struktur kelas OOP | Diskusi pembagian tanggung jawab antara `Robot`, `Striker`, `Simulator`, `Field`, `Ball`, dan `Goal` |
+| Logika `planShot()` | Ide pendekatan: mencoba 8 petak di sekitar bola dan 3 arah tendangan, lalu mensimulasikan hasilnya |
+| Rendering terminal | Bantuan memakai ANSI escape code, termasuk pengaktifannya di Windows |
+| Debugging | Membantu mencari penyebab bug, misalnya bola respawn atau robot gagal align |
