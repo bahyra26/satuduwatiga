@@ -3,17 +3,16 @@
 
 using MathUtils::Vec2;
 
-namespace { constexpr double EPS = 1e-9; }
-
 Goal::Goal(double x, double halfWidth) : x_(x), halfWidth_(halfWidth) {}
 
 Vec2 Goal::center() const { return {x_, 0.0}; }
 
-bool Goal::contains(const Vec2& p) const {
-    return p.x >= x_ - EPS && std::fabs(p.y) <= halfWidth_ + EPS;
+bool Goal::contains(const Vec2& p, const Field& field) const {
+    // titik tengah petak terakhir ada di x_ - cellSize/2, jadi batas kiri digeser setengah petak
+    return p.x >= x_ - field.getCellSize() / 2.0 - MathUtils::EPS &&
+           std::fabs(p.y) <= halfWidth_ + MathUtils::EPS;
 }
 
 bool Goal::isGoalCell(int col, int row, const Field& field) const {
-    if (col != field.getCols() - 1 || !field.isValidCell(col, row)) return false;
-    return std::fabs(field.toWorld(col, row).y) < halfWidth_;
+    return field.isValidCell(col, row) && contains(field.toWorld(col, row), field);
 }

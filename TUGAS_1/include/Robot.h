@@ -5,15 +5,33 @@
 #include "Ball.h"
 
 class Robot {
+public:
+    // kamera: segitiga di depan robot, kedalaman 3 petak (1.5 m), baris ke-1/2/3 lebarnya 3/5/7 petak
+    // (alas 7 petak = 3.5 m), setara sudut pandang 90 derajat
+    static constexpr double DEFAULT_FOV   = 90.0;
+    static constexpr double DEFAULT_RANGE = 1.5;   // meter
+    static constexpr double TURN_STEP     = 45.0;  // derajat per putaran
+
+    // rencana tembakan: berdiri di standCell menghadap angle, bola di depan lalu ditendang ke angle
+    struct ShotPlan {
+        Cell standCell;
+        double angle;  // sudut global tendangan (kelipatan 45)
+        bool scores;   // hasil simulasi: bola berakhir di gawang?
+    };
+
 private:
-    MathUtils::Vec2 pos_;
-    double heading_;  // derajat
-    double fov_;      // sudut pandang total (derajat)
-    double range_;    // jarak pandang maksimum (meter)
+    MathUtils::Vec2 pos_;  // meter, selalu di tengah petak
+    double heading_;       // derajat, selalu kelipatan 45 (8 arah grid)
+    double fov_;           // sudut pandang total (derajat)
+    double range_;         // jarak pandang maksimum lurus ke depan (meter)
+    Goal goal_;            // robot SELALU tahu lokasi gawang lawan
+
+    // satu langkah (1 petak) ke arah angleDeg (dibulatkan ke 45), hadap ikut arah itu
+    bool stepAlong(double angleDeg, const Field& field);
 
 public:
     Robot(const MathUtils::Vec2& pos, double heading, const Field& field,
-          double fov = 90.0, double range = 3.0);
+          const Goal& goal = Goal(), double fov = DEFAULT_FOV, double range = DEFAULT_RANGE);
 
     double getFov() const;
     double getRange() const;
@@ -25,24 +43,46 @@ public:
     MathUtils::Vec2 getPosition() const;
     double getHeading() const;
     void setPosition(const MathUtils::Vec2& p, const Field& field);
-    void setHeading(double deg);
+    void setHeading(double deg);  // throw invalid_argument kalau bukan kelipatan 45
 
-    double goalDistance(const Goal& goal) const;
-    double goalBearing(const Goal& goal) const;        // sudut global
-    double goalRelativeAngle(const Goal& goal) const;  // relatif ke hadapan robot
+    const Goal& getGoal() const;
+    void setGoal(const Goal& goal);
 
-    // putar hadapan sebesar deg derajat (+ berlawanan arah jarum jam)
+    Cell frontCell(const Field& field) const;  // petak tepat di depan robot
+
+    double goalDistance() const;
+    double goalBearing() const;        // sudut global
+    double goalRelativeAngle() const;  // relatif ke hadapan robot
+
+    // putar hadapan sebesar deg derajat (+ berlawanan arah jarum jam), harus kelipatan 45
     void rotate(double deg);
 
     // scanning: kalau bola belum kelihatan, putar stepDeg derajat
     // return true kalau bola kelihatan (setelah diputar)
-    bool scanStep(const Ball& ball, double stepDeg = 15.0);
+    bool scanStep(const Ball& ball, double stepDeg = TURN_STEP);
 
-    // maju satu petak ke arah bola (8 arah), berhenti kalau sudah bersebelahan dengan bola
-    // return true kalau robot berhasil bergerak
-    bool stepToBall(const Ball& ball, const Field& field);
+    // putar satu lingkaran penuh sambil mencari bola
+    // return true kalau bola kelihatan di salah satu arah
+    bool scanFull(const Ball& ball, double stepDeg = TURN_STEP);
 
-    // tendang bola ke arah gawang, hanya kalau bola bersebelahan dengan robot
-    // return true kalau berhasil menendang
-    bool kickBall(Ball& ball, const Goal& goal, const Field& field);
+    // maju satu petak ke arah target (8 arah)
+    // avoid (opsional): petak yang tidak boleh diinjak (mis. petak bola), robot memutar lewat samping
+    // return false kalau sudah sampai atau tidak ada jalan
+    bool stepToward(const MathUtils::Vec2& target, const Field& field, const Cell* avoid = nullptr);
+
+    // ALIGN: pilih dari 8 arah tendangan, simulasikan ke mana bola berakhir, utamakan yang masuk
+    // gawang (kalau ada beberapa, yang paling searah gawang). Posisi tendang = di belakang bola
+    ShotPlan planShot(const Ball& ball, const Field& field) const;
+
+    // satu aksi menuju posisi tendang: jalan (menghindari petak bola), lalu putar menghadap bola.
+    // return false kalau sudah siap tendang atau tidak ada jalan
+    bool alignToShoot(const Ball& ball, const Field& field);
+
+    // syarat tendang: bola tepat di petak depan robot
+    bool canKick(const Ball& ball, const Field& field) const;
+
+    // tendang bola, hanya kalau canKick().
+    // arah tendangan: lurus / miring atas / miring bawah relatif hadapan robot (yang paling dekat
+    // ke rencana tembakan). return true kalau berhasil menendang
+    bool kickBall(Ball& ball, const Field& field);
 };
