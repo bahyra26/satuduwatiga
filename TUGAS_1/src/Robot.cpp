@@ -45,7 +45,7 @@ double Robot::getHeading() const { return heading_; }
 void Robot::setPosition(const Vec2 &p, const Field &field) {
   if (!field.isInside(p))
     throw std::out_of_range("Posisi robot di luar lapangan");
-  pos_ = field.snap(p); // selalu di tengah petak
+  pos_ = field.snap(p);
 }
 
 void Robot::setHeading(double deg) {
@@ -106,7 +106,7 @@ bool Robot::stepToward(const Vec2 &target, const Field &field,
   Vec2 goalPoint = field.snap(target);
   Cell me = field.cellOf(pos_);
   if (me == field.cellOf(goalPoint))
-    return false; // sudah di petak target
+    return false;
 
   auto blocked = [&](double angle) {
     Cell n = field.neighbor(me, MathUtils::dirFromAngle(angle));
@@ -137,7 +137,7 @@ bool Robot::stepToward(const Vec2 &target, const Field &field,
 
 bool Robot::kickScores(const Ball &ball, const Field &field,
                        double angle) const {
-  Ball sim = ball; // simulasi tendangan pada salinan bola
+  Ball sim = ball;
   sim.kick(angle);
   while (sim.isMoving())
     sim.step(field);
@@ -153,11 +153,8 @@ Robot::ShotPlan Robot::planShot(const Ball &ball, const Field &field) const {
   double bestDiff = 0.0, bestWalk = 0.0, bestOff = 0.0;
   bool have = false;
 
-  // robot boleh berdiri di salah satu dari 8 petak di sekitar bola, menghadap
-  // bola, lalu menendang lurus atau miring +-45 derajat dari hadapannya
   for (int i = 0; i < 8; ++i) {
-    double heading =
-        MathUtils::normalizeAngle(45.0 * i); // arah dari petak berdiri ke bola
+    double heading = MathUtils::normalizeAngle(45.0 * i);
     MathUtils::Dir d = MathUtils::dirFromAngle(heading);
     Cell stand = field.neighbor(ballCell, {-d.dx, -d.dy});
     if (!field.isValidCell(stand.first, stand.second))
@@ -198,12 +195,11 @@ bool Robot::alignToShoot(const Ball &ball, const Field &field) {
   Cell me = field.cellOf(pos_);
   Cell ballCell = field.cellOf(ball.getPosition());
   if (me == ballCell)
-    return false; // satu petak dengan bola: tidak bisa diselesaikan
+    return false;
 
   if (me != plan.standCell)
     return stepToward(field.toWorld(plan.standCell), field, &ballCell);
 
-  // sudah di posisi tendang: hadap bola
   double want = MathUtils::snap45(plan.heading);
   if (std::fabs(MathUtils::normalizeAngle(want - heading_)) < MathUtils::EPS)
     return false;
@@ -219,8 +215,6 @@ bool Robot::kickBall(Ball &ball, const Field &field) {
   if (!canKick(ball, field))
     return false;
 
-  // pilih lurus / miring atas / miring bawah relatif hadapan: utamakan yang
-  // masuk gawang, kalau ada beberapa yang paling searah gawang
   double toGoal = MathUtils::bearing(ball.getPosition(), goal_.center());
   double bestAngle = heading_, bestDiff = 0.0, bestOff = 0.0;
   bool bestScores = false, have = false;

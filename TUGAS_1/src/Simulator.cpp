@@ -55,9 +55,6 @@ void Simulator::searchTick() {
 }
 
 void Simulator::alignTick() {
-    // posisi bola sudah diketahui sejak fase Search, jadi saat Align robot tetap lanjut
-    // meski bola sempat keluar dari kamera (robot berjalan/berputar). think() hanya
-    // dipakai untuk memutuskan kapan menendang.
     if (robot_.think(ball_, field_) == Robot::Action::Kick) {
         state_ = State::Kick;
         return;
@@ -74,7 +71,6 @@ void Simulator::rollTick() {
     ball_.step(field_);
     if (ball_.isMoving()) return;
 
-    // menabrak batas di luar gawang = keluar lapangan -> respawn di tengah
     if (ball_.hitWall() && !scored()) {
         respawnBall();
         return;
@@ -83,16 +79,13 @@ void Simulator::rollTick() {
 }
 
 void Simulator::respawnBall() {
-    // (0, 0) ada di sudut empat petak, snap() memilih petak (9, 6) = (0.25, -0.25)
     Cell cell = field_.cellOf({0.0, 0.0});
-    // kalau robot berdiri di petak itu, geser bola satu petak ke kanan
     if (cell == field_.cellOf(robot_.getPosition()))
         cell = field_.neighbor(cell, {1, 0});
 
     ball_.setPosition(field_.toWorld(cell), field_);
     ++respawns_;
 
-    // robot tidak tahu bola pindah: mulai pencarian dari awal
     scanCount_ = 0;
     wpIndex_ = 0;
     state_ = (robot_.think(ball_, field_) != Robot::Action::Search) ? State::Align : State::Search;
