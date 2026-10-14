@@ -86,7 +86,8 @@ public:
     // return false kalau sudah sampai atau tidak ada jalan
     bool stepToward(const MathUtils::Vec2& target, const Field& field, const Cell* avoid = nullptr);
 
-    // ALIGN: coba 8 petak di sekitar bola x 3 arah tendangan (lurus / miring atas / miring bawah),
+    // ALIGN: coba 4 petak tepat di kiri/kanan/atas/bawah bola (bukan serong) x 3 arah tendangan
+    // (lurus / miring atas / miring bawah),
     // simulasikan ke mana bola berakhir, utamakan yang masuk gawang (kalau ada beberapa, yang
     // paling searah gawang, lalu yang paling dekat untuk dijalani)
     ShotPlan planShot(const Ball& ball, const Field& field) const;
@@ -95,7 +96,7 @@ public:
     // return false kalau sudah siap tendang atau tidak ada jalan
     bool alignToShoot(const Ball& ball, const Field& field);
 
-    // syarat tendang: bola tepat di petak depan robot
+    // syarat tendang: robot menghadap lurus (0/90/180/270, tidak serong) dan bola tepat di petak depan
     bool canKick(const Ball& ball, const Field& field) const;
 
     // tendang bola, hanya kalau canKick().

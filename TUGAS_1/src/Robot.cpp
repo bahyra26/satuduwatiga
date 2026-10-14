@@ -153,7 +153,9 @@ Robot::ShotPlan Robot::planShot(const Ball &ball, const Field &field) const {
   double bestDiff = 0.0, bestWalk = 0.0, bestOff = 0.0;
   bool have = false;
 
-  for (int i = 0; i < 8; ++i) {
+  // robot hanya boleh berdiri tepat di kiri / kanan / atas / bawah bola (hadap 0/90/180/270),
+  // bukan di petak serong bola. arah tendangnya yang boleh miring (+-45 dari hadap)
+  for (int i = 0; i < 8; i += 2) {
     double heading = MathUtils::normalizeAngle(45.0 * i);
     MathUtils::Dir d = MathUtils::dirFromAngle(heading);
     Cell stand = field.neighbor(ballCell, {-d.dx, -d.dy});
@@ -208,7 +210,9 @@ bool Robot::alignToShoot(const Ball &ball, const Field &field) {
 }
 
 bool Robot::canKick(const Ball &ball, const Field &field) const {
-  return field.cellOf(ball.getPosition()) == frontCell(field);
+  // robot harus menghadap lurus (0/90/180/270), bukan serong, dan bola tepat di petak depannya
+  bool straight = std::fabs(std::fmod(heading_, 90.0)) < MathUtils::EPS;
+  return straight && field.cellOf(ball.getPosition()) == frontCell(field);
 }
 
 bool Robot::kickBall(Ball &ball, const Field &field) {
